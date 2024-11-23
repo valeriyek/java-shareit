@@ -1,12 +1,50 @@
 package ru.practicum.shareit.item;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.exception.ValidationException;
+import ru.practicum.shareit.item.dto.ItemDto;
 
-/**
- * TODO Sprint add-controllers.
- */
+import java.util.List;
+
 @RestController
 @RequestMapping("/items")
+@RequiredArgsConstructor
 public class ItemController {
+
+    private final ItemService itemService;
+
+    @PostMapping
+    public ItemDto addItem(@RequestBody ItemDto itemDto,
+                           @RequestHeader(value = "X-Sharer-User-Id", required = false) Long userId) {
+        if (userId == null) {
+            throw new ValidationException("Заголовок X-Sharer-User-Id обязателен");
+        }
+        return itemService.addItem(itemDto, userId);
+    }
+
+    @PatchMapping("/{itemId}")
+    public ItemDto updateItem(@PathVariable Long itemId,
+                              @RequestBody ItemDto itemDto,
+                              @RequestHeader(value = "X-Sharer-User-Id", required = false) Long userId) {
+        if (userId == null) {
+            throw new RuntimeException("Отсутствует заголовок X-Sharer-User-Id");
+        }
+        return itemService.updateItem(itemId, itemDto, userId);
+    }
+
+    @GetMapping("/{itemId}")
+    public ItemDto getItemById(@PathVariable Long itemId) {
+        return itemService.getItemById(itemId);
+    }
+
+    @GetMapping
+    public List<ItemDto> getUserItems(@RequestHeader("X-Sharer-User-Id") Long userId) {
+        return itemService.getUserItems(userId);
+    }
+
+    @GetMapping("/search")
+    public List<ItemDto> searchItems(@RequestParam String text) {
+        return itemService.searchItems(text);
+    }
 }

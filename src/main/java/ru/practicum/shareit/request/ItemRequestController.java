@@ -1,12 +1,30 @@
 package ru.practicum.shareit.request;
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.request.dto.ItemRequestDto;
 
-/**
- * TODO Sprint add-item-requests.
- */
+import java.util.List;
+
 @RestController
-@RequestMapping(path = "/requests")
+@RequestMapping("/requests")
+@RequiredArgsConstructor
 public class ItemRequestController {
+    private final ItemRequestService requestService;
+
+    @PostMapping
+    public ItemRequestDto createRequest(@RequestBody ItemRequestDto itemRequestDto,
+                                        @RequestHeader("X-Sharer-User-Id") Long userId) {
+        return requestService.createRequest(itemRequestDto, userId);
+    }
+
+    @GetMapping
+    public List<ItemRequestDto> getUserRequests(@RequestHeader("X-Sharer-User-Id") Long userId) {
+        return requestService.getUserRequests(userId);
+    }
+
+    @GetMapping("/all")
+    public List<ItemRequestDto> getAllRequests() {
+        return requestService.getAllRequests();
+    }
 }
