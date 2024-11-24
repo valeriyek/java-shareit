@@ -5,10 +5,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.ForbiddenException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.user.UserRepository;
+import ru.practicum.shareit.utils.Utils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -27,16 +27,6 @@ public class ItemServiceImpl implements ItemService {
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
 
-        if (itemDto.getName() == null || itemDto.getName().isBlank()) {
-            throw new ValidationException("Поле 'name' обязательно для заполнения");
-        }
-        if (itemDto.getDescription() == null || itemDto.getDescription().isBlank()) {
-            throw new ValidationException("Поле 'description' обязательно для заполнения");
-        }
-        if (itemDto.getAvailable() == null) {
-            throw new ValidationException("Поле 'available' обязательно для заполнения");
-        }
-
         Item item = ItemMapper.toItem(itemDto, userId);
         return ItemMapper.toItemDto(itemRepository.save(item));
     }
@@ -53,15 +43,10 @@ public class ItemServiceImpl implements ItemService {
         }
 
 
-        if (itemDto.getName() != null && !itemDto.getName().isBlank()) {
-            item.setName(itemDto.getName());
-        }
-        if (itemDto.getDescription() != null && !itemDto.getDescription().isBlank()) {
-            item.setDescription(itemDto.getDescription());
-        }
-        if (itemDto.getAvailable() != null) {
-            item.setAvailable(itemDto.getAvailable());
-        }
+        Utils.applyIfNotNull(itemDto.getName(), item::setName);
+        Utils.applyIfNotNull(itemDto.getDescription(), item::setDescription);
+        Utils.applyIfNotNull(itemDto.getAvailable(), item::setAvailable);
+
 
         return ItemMapper.toItemDto(itemRepository.save(item));
     }
@@ -82,11 +67,9 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> searchItems(String text) {
-        if (text == null || text.isBlank()) {
-            return List.of();
-        }
-
-        return itemRepository.search(text.toLowerCase()).stream()
+        return (text == null || text.isBlank())
+                ? List.of()
+                : itemRepository.search(text.toLowerCase()).stream()
                 .filter(Item::isAvailable)
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());

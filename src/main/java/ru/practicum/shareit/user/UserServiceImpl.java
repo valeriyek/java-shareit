@@ -5,8 +5,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exception.ConflictException;
 import ru.practicum.shareit.exception.NotFoundException;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.utils.Utils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,11 +19,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserDto createUser(UserDto userDto) {
-        validateUser(userDto);
-        if (userRepository.findAll().stream()
-                .anyMatch(user -> user.getEmail().equals(userDto.getEmail()))) {
-            throw new ConflictException("Email уже существует");
-        }
+        validateEmail(userDto.getEmail());
         User user = UserMapper.toUser(userDto);
         return UserMapper.toUserDto(userRepository.save(user));
     }
@@ -33,32 +29,20 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        if (userDto.getEmail() != null && !userDto.getEmail().equals(user.getEmail())) {
-            validateEmail(userDto.getEmail());
-            if (userRepository.findAll().stream()
-                    .anyMatch(u -> u.getEmail().equals(userDto.getEmail()))) {
-                throw new ConflictException("Email уже существует");
-            }
-            user.setEmail(userDto.getEmail());
-        }
+        Utils.applyIfNotNull(userDto.getEmail(), email -> {
+            validateEmail(email);
+            user.setEmail(email);
+        });
 
-        if (userDto.getName() != null) {
-            user.setName(userDto.getName());
-        }
+        Utils.applyIfNotNull(userDto.getName(), user::setName);
 
         return UserMapper.toUserDto(userRepository.save(user));
     }
 
-    private void validateUser(UserDto userDto) {
-        if (userDto.getEmail() == null || userDto.getEmail().isBlank()) {
-            throw new ValidationException("Email обязателен");
-        }
-        validateEmail(userDto.getEmail());
-    }
 
     private void validateEmail(String email) {
-        if (!email.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$")) {
-            throw new ValidationException("Некорректный формат email");
+        if (userRepository.findAll().stream().anyMatch(user -> user.getEmail().equals(email))) {
+            throw new ConflictException("Email уже существует");
         }
     }
 

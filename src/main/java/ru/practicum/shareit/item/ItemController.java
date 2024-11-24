@@ -1,8 +1,8 @@
 package ru.practicum.shareit.item;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
-import ru.practicum.shareit.exception.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 
 import java.util.List;
@@ -15,21 +15,14 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public ItemDto addItem(@RequestBody ItemDto itemDto,
-                           @RequestHeader(value = "X-Sharer-User-Id", required = false) Long userId) {
-        if (userId == null) {
-            throw new ValidationException("Заголовок X-Sharer-User-Id обязателен");
-        }
+    public ItemDto addItem(@RequestHeader("X-Sharer-User-Id") Long userId, @Valid @RequestBody ItemDto itemDto) {
         return itemService.addItem(itemDto, userId);
     }
 
     @PatchMapping("/{itemId}")
     public ItemDto updateItem(@PathVariable Long itemId,
                               @RequestBody ItemDto itemDto,
-                              @RequestHeader(value = "X-Sharer-User-Id", required = false) Long userId) {
-        if (userId == null) {
-            throw new RuntimeException("Отсутствует заголовок X-Sharer-User-Id");
-        }
+                              @RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId) {
         return itemService.updateItem(itemId, itemDto, userId);
     }
 
