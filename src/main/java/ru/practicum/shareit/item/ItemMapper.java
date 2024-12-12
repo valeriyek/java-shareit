@@ -6,6 +6,8 @@ import lombok.NoArgsConstructor;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.model.Item;
 
+import java.util.Collections;
+
 @NoArgsConstructor(access = AccessLevel.PRIVATE)
 
 public class ItemMapper {
@@ -15,7 +17,10 @@ public class ItemMapper {
                 item.getName(),
                 item.getDescription(),
                 item.isAvailable(),
-                item.getRequest()
+                item.getRequest(),
+                null,
+                null,
+                Collections.emptyList()
         );
     }
 
