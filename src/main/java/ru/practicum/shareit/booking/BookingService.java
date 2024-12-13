@@ -36,7 +36,7 @@ public class BookingService {
         if (!item.isAvailable()) {
             throw new ValidationException("Вещь недоступна для бронирования");
         }
-        if (item.getOwner().equals(userId)) {
+        if (item.getOwner().getId().equals(userId)) {
             throw new ForbiddenException("Владелец не может бронировать собственную вещь");
         }
         if (bookingDto.getStart().isBefore(LocalDateTime.now()) || bookingDto.getEnd().isBefore(LocalDateTime.now())) {
