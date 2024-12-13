@@ -3,12 +3,15 @@ package ru.practicum.shareit.item.model;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Data;
+import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
+import ru.practicum.shareit.user.User;
 
-@Data
 @Entity
 @Table(name = "items")
+@Getter
+@Setter
 @AllArgsConstructor
 @NoArgsConstructor
 public class Item {
@@ -21,8 +24,9 @@ public class Item {
     private String description;
     @Column(nullable = false)
     private boolean available;
-    @Column(name = "owner_id", nullable = false)
-    private Long owner;
+    @ManyToOne
+    @JoinColumn(name = "owner_id", nullable = false)
+    private User owner;
     @Column(name = "request_id")
     private Long request;
 }

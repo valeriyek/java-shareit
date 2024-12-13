@@ -18,6 +18,7 @@ import ru.practicum.shareit.user.UserRepository;
 import ru.practicum.shareit.utils.Utils;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -33,11 +34,11 @@ public class ItemServiceImpl implements ItemService {
     @Override
     public ItemDto addItem(ItemDto itemDto, Long userId) {
 
-        userRepository.findById(userId)
+        User owner = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
 
+        Item item = ItemMapper.toItem(itemDto, owner);
 
-        Item item = ItemMapper.toItem(itemDto, userId);
         return toItemDtoWithBookingsAndComments(itemRepository.save(item));
     }
 
@@ -48,7 +49,7 @@ public class ItemServiceImpl implements ItemService {
                 .orElseThrow(() -> new NotFoundException("Вещь с ID " + itemId + " не найдена"));
 
 
-        if (!item.getOwner().equals(userId)) {
+        if (!item.getOwner().getId().equals(userId)) {
             throw new ForbiddenException("Вы не являетесь владельцем этой вещи");
         }
 
@@ -70,7 +71,10 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public List<ItemDto> getUserItems(Long userId) {
-        return itemRepository.findByOwner(userId).stream()
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с ID " + userId + " не найден"));
+
+        return itemRepository.findByOwner(user).stream()
                 .map(this::toItemDtoWithBookingsAndComments)
                 .collect(Collectors.toList());
     }
@@ -81,7 +85,9 @@ public class ItemServiceImpl implements ItemService {
             return List.of();
         }
         String query = text.toLowerCase();
-        return itemRepository.findByAvailableTrueAndNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query, query).stream()
+        return itemRepository
+                .findByAvailableTrueAndNameContainingIgnoreCaseOrDescriptionContainingIgnoreCase(query, query)
+                .stream()
                 .map(this::toItemDtoWithBookingsAndComments)
                 .collect(Collectors.toList());
     }
@@ -93,7 +99,7 @@ public class ItemServiceImpl implements ItemService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        boolean hasPastBooking = bookingRepository.findAllByBookerIdOrderByStartDesc(userId).stream()
+        boolean hasPastBooking = bookingRepository.findBookingsByBookerId(userId).stream()
                 .anyMatch(booking -> booking.getItem().getId().equals(itemId) &&
                         booking.getEnd().isBefore(LocalDateTime.now()) &&
                         booking.getStatus().equals(BookingStatus.APPROVED));
@@ -112,14 +118,13 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void setBookings(ItemDto dto, Long itemId) {
-        // Последнее бронирование
         bookingRepository.findLastBooking(itemId).ifPresent(lastBooking -> {
-            if (lastBooking.getEnd().isBefore(LocalDateTime.now()) && lastBooking.getStatus() == BookingStatus.APPROVED) {
+            if (lastBooking.getEnd()
+                    .isBefore(LocalDateTime.now()) && lastBooking.getStatus() == BookingStatus.APPROVED) {
                 dto.setLastBooking(new BookingShortDto(lastBooking.getId(), lastBooking.getBooker().getId()));
             }
         });
 
-        // Следующее бронирование
         bookingRepository.findNextBooking(itemId).ifPresentOrElse(
                 nextBooking -> dto.setNextBooking(new BookingShortDto(nextBooking.getId(), nextBooking.getBooker().getId())),
                 () -> dto.setNextBooking(null)
@@ -130,7 +135,7 @@ public class ItemServiceImpl implements ItemService {
         List<CommentDto> comments = commentRepository.findByItemId(itemId).stream()
                 .map(CommentMapper::toDto)
                 .collect(Collectors.toList());
-        dto.setComments(comments);
+        dto.setComments(comments.isEmpty() ? Collections.emptyList() : comments);
     }
 
     private ItemDto toItemDtoWithBookingsAndComments(Item item) {

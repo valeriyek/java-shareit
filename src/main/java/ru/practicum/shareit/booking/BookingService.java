@@ -56,7 +56,7 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
-        if (!booking.getItem().getOwner().equals(userId)) {
+        if (!booking.getItem().getOwner().getId().equals(userId)) {
             throw new ForbiddenException("Вы не являетесь владельцем вещи");
         }
 
@@ -72,7 +72,7 @@ public class BookingService {
         Booking booking = bookingRepository.findById(bookingId)
                 .orElseThrow(() -> new NotFoundException("Бронирование не найдено"));
 
-        if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().equals(userId)) {
+        if (!booking.getBooker().getId().equals(userId) && !booking.getItem().getOwner().getId().equals(userId)) {
             throw new ForbiddenException("Нет прав на просмотр этого бронирования");
         }
 
@@ -84,10 +84,9 @@ public class BookingService {
             throw new NotFoundException("Пользователь не найден");
         }
 
-        List<Booking> bookings = bookingRepository.findAllByBookerIdOrderByStartDesc(userId);
-        return filterBookingsByState(bookings, state).stream()
-                .map(BookingMapper::toBookingDto)
-                .collect(Collectors.toList());
+        List<Booking> bookings = bookingRepository.findBookingsByBookerId(userId);
+        return filterAndMapBookings(bookings, state);
+
     }
 
     public List<BookingDto> getOwnerBookings(Long ownerId, BookingState state) {
@@ -95,39 +94,26 @@ public class BookingService {
             throw new NotFoundException("Пользователь не найден");
         }
 
-        List<Booking> bookings = bookingRepository.findAllByOwnerIdOrderByStartDesc(ownerId);
-        return filterBookingsByState(bookings, state).stream()
+        List<Booking> bookings = bookingRepository.findBookingsByOwnerId(ownerId);
+        return filterAndMapBookings(bookings, state);
+    }
+
+    private List<BookingDto> filterAndMapBookings(List<Booking> bookings, BookingState state) {
+        return bookings.stream()
+                .filter(booking -> filterByState(booking, state))
                 .map(BookingMapper::toBookingDto)
                 .collect(Collectors.toList());
     }
 
-    private List<Booking> filterBookingsByState(List<Booking> bookings, BookingState state) {
+    private boolean filterByState(Booking booking, BookingState state) {
         LocalDateTime now = LocalDateTime.now();
-        switch (state) {
-            case ALL:
-                return bookings;
-            case CURRENT:
-                return bookings.stream()
-                        .filter(b -> b.getStart().isBefore(now) && b.getEnd().isAfter(now))
-                        .collect(Collectors.toList());
-            case PAST:
-                return bookings.stream()
-                        .filter(b -> b.getEnd().isBefore(now))
-                        .collect(Collectors.toList());
-            case FUTURE:
-                return bookings.stream()
-                        .filter(b -> b.getStart().isAfter(now))
-                        .collect(Collectors.toList());
-            case WAITING:
-                return bookings.stream()
-                        .filter(b -> b.getStatus() == BookingStatus.WAITING)
-                        .collect(Collectors.toList());
-            case REJECTED:
-                return bookings.stream()
-                        .filter(b -> b.getStatus() == BookingStatus.REJECTED)
-                        .collect(Collectors.toList());
-            default:
-                return bookings;
-        }
+        return switch (state) {
+            case ALL -> true;
+            case CURRENT -> booking.getStart().isBefore(now) && booking.getEnd().isAfter(now);
+            case PAST -> booking.getEnd().isBefore(now);
+            case FUTURE -> booking.getStart().isAfter(now);
+            case WAITING -> booking.getStatus() == BookingStatus.WAITING;
+            case REJECTED -> booking.getStatus() == BookingStatus.REJECTED;
+        };
     }
 }
