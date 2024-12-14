@@ -84,9 +84,18 @@ public class BookingService {
             throw new NotFoundException("Пользователь не найден");
         }
 
-        List<Booking> bookings = bookingRepository.findBookingsByBookerId(userId);
-        return filterAndMapBookings(bookings, state);
+        List<Booking> bookings = switch (state) {
+            case ALL -> bookingRepository.findAllBookingsByBookerId(userId);
+            case PAST -> bookingRepository.findPastBookingsByBookerId(userId, LocalDateTime.now());
+            case CURRENT -> bookingRepository.findCurrentBookingsByBookerId(userId, LocalDateTime.now());
+            case FUTURE -> bookingRepository.findFutureBookingsByBookerId(userId, LocalDateTime.now());
+            case WAITING -> bookingRepository.findWaitingBookingsByBookerId(userId);
+            case REJECTED -> bookingRepository.findRejectedBookingsByBookerId(userId);
+        };
 
+        return bookings.stream()
+                .map(BookingMapper::toBookingDto)
+                .collect(Collectors.toList());
     }
 
     public List<BookingDto> getOwnerBookings(Long ownerId, BookingState state) {
@@ -94,26 +103,19 @@ public class BookingService {
             throw new NotFoundException("Пользователь не найден");
         }
 
-        List<Booking> bookings = bookingRepository.findBookingsByOwnerId(ownerId);
-        return filterAndMapBookings(bookings, state);
-    }
+        List<Booking> bookings = switch (state) {
+            case ALL -> bookingRepository.findAllBookingsByOwnerId(ownerId);
+            case PAST -> bookingRepository.findPastBookingsByOwnerId(ownerId, LocalDateTime.now());
+            case CURRENT -> bookingRepository.findCurrentBookingsByOwnerId(ownerId, LocalDateTime.now());
+            case FUTURE -> bookingRepository.findFutureBookingsByOwnerId(ownerId, LocalDateTime.now());
+            case WAITING -> bookingRepository.findWaitingBookingsByOwnerId(ownerId);
+            case REJECTED -> bookingRepository.findRejectedBookingsByOwnerId(ownerId);
+        };
 
-    private List<BookingDto> filterAndMapBookings(List<Booking> bookings, BookingState state) {
         return bookings.stream()
-                .filter(booking -> filterByState(booking, state))
                 .map(BookingMapper::toBookingDto)
                 .collect(Collectors.toList());
     }
 
-    private boolean filterByState(Booking booking, BookingState state) {
-        LocalDateTime now = LocalDateTime.now();
-        return switch (state) {
-            case ALL -> true;
-            case CURRENT -> booking.getStart().isBefore(now) && booking.getEnd().isAfter(now);
-            case PAST -> booking.getEnd().isBefore(now);
-            case FUTURE -> booking.getStart().isAfter(now);
-            case WAITING -> booking.getStatus() == BookingStatus.WAITING;
-            case REJECTED -> booking.getStatus() == BookingStatus.REJECTED;
-        };
-    }
+
 }
