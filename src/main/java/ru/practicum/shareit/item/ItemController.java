@@ -18,15 +18,12 @@ public class ItemController {
     private final ItemService itemService;
 
     @PostMapping
-    public ItemWithBookingsDto addItem(@RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId
-            , @Valid @RequestBody ItemDto itemDto) {
+    public ItemWithBookingsDto addItem(@RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId, @Valid @RequestBody ItemDto itemDto) {
         return itemService.addItem(itemDto, userId);
     }
 
     @PatchMapping("/{itemId}")
-    public ItemWithBookingsDto updateItem(@PathVariable Long itemId,
-                                          @RequestBody ItemDto itemDto,
-                                          @RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId) {
+    public ItemWithBookingsDto updateItem(@PathVariable Long itemId, @RequestBody ItemDto itemDto, @RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId) {
         return itemService.updateItem(itemId, itemDto, userId);
     }
 
@@ -36,8 +33,7 @@ public class ItemController {
     }
 
     @GetMapping
-    public List<ItemWithBookingsDto> getUserItems(@RequestHeader(value = "X-Sharer-User-Id"
-            , required = true) Long userId) {
+    public List<ItemWithBookingsDto> getUserItems(@RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId) {
         return itemService.getUserItems(userId);
     }
 
@@ -47,9 +43,7 @@ public class ItemController {
     }
 
     @PostMapping("/{itemId}/comment")
-    public CommentDto addComment(@PathVariable Long itemId,
-                                 @RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId,
-                                 @RequestBody CommentDto commentDto) {
+    public CommentDto addComment(@PathVariable Long itemId, @RequestHeader(value = "X-Sharer-User-Id", required = true) Long userId, @RequestBody CommentDto commentDto) {
         return itemService.addComment(itemId, userId, commentDto);
     }
 }
