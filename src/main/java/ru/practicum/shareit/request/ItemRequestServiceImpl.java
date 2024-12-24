@@ -40,9 +40,16 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     }
 
     @Override
-    public List<ItemRequestDto> getAllRequests() {
-        return requestRepository.findAll().stream()
+    public List<ItemRequestDto> getOtherUsersRequests(Long userId) {
+        return requestRepository.findOtherUsersRequests(userId).stream()
                 .map(ItemRequestMapper::toDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public ItemRequestDto getRequestById(Long requestId, Long userId) {
+        ItemRequest request = requestRepository.findById(requestId)
+                .orElseThrow(() -> new RuntimeException("Запрос не найден"));
+        return ItemRequestMapper.toDto(request);
     }
 }

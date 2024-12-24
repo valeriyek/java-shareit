@@ -9,6 +9,7 @@ public class ItemRequestMapper {
                 itemRequest.getId(),
                 itemRequest.getDescription(),
                 itemRequest.getRequestor().getId(),
+                itemRequest.getRequestor().getName(),
                 itemRequest.getCreated().toString()
         );
     }

@@ -2,6 +2,7 @@ package ru.practicum.shareit.item;
 
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.booking.BookingRepository;
 import ru.practicum.shareit.booking.BookingStatus;
@@ -92,7 +93,11 @@ public class ItemServiceImpl implements ItemService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
-        boolean hasPastBooking = !bookingRepository.findPastBookingsForItemAndUser(itemId, userId).isEmpty();
+        Sort sort = Sort.by(Sort.Direction.DESC, "end");
+        boolean hasPastBooking = bookingRepository.findByItemIdAndBookerIdAndEndBefore(itemId, userId, LocalDateTime.now(), sort)
+                .stream()
+                .findFirst()
+                .isPresent();
 
         if (!hasPastBooking) {
             throw new ValidationException("Пользователь не брал эту вещь или аренда не завершена");
@@ -108,17 +113,25 @@ public class ItemServiceImpl implements ItemService {
     }
 
     private void setBookings(ItemWithBookingsDto dto, Long itemId) {
-        bookingRepository.findLastBooking(itemId).ifPresent(lastBooking -> {
-            if (lastBooking.getEnd()
-                    .isBefore(LocalDateTime.now()) && lastBooking.getStatus() == BookingStatus.APPROVED) {
-                dto.setLastBooking(new BookingShortDto(lastBooking.getId(), lastBooking.getBooker().getId()));
-            }
-        });
+        Sort sortDesc = Sort.by(Sort.Direction.DESC, "end");
+        Sort sortAsc = Sort.by(Sort.Direction.ASC, "start");
 
-        bookingRepository.findNextBooking(itemId).ifPresentOrElse(
-                nextBooking -> dto.setNextBooking(new BookingShortDto(nextBooking.getId(), nextBooking.getBooker().getId())),
-                () -> dto.setNextBooking(null)
-        );
+        bookingRepository.findByItemIdAndEndBefore(itemId, LocalDateTime.now(), sortDesc)
+                .stream()
+                .findFirst()
+                .ifPresent(lastBooking -> {
+                    if (lastBooking.getStatus() == BookingStatus.APPROVED) {
+                        dto.setLastBooking(new BookingShortDto(lastBooking.getId(), lastBooking.getBooker().getId()));
+                    }
+                });
+
+        bookingRepository.findByItemIdAndStartAfter(itemId, LocalDateTime.now(), sortAsc)
+                .stream()
+                .findFirst()
+                .ifPresentOrElse(
+                        nextBooking -> dto.setNextBooking(new BookingShortDto(nextBooking.getId(), nextBooking.getBooker().getId())),
+                        () -> dto.setNextBooking(null)
+                );
     }
 
     private void setComments(ItemWithBookingsDto dto, Long itemId) {
