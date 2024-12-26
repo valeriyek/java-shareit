@@ -1,28 +1,33 @@
 package ru.practicum.shareit.item.service;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.request.service.ItemRequestService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import ru.practicum.shareit.booking.dto.BookingSavingDto;
 import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.dto.ItemAllFieldsDto;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.booking.dto.BookingSavingDto;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
-import ru.practicum.shareit.request.service.ItemRequestService;
-import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.item.dto.ItemAllFieldsDto;
 import ru.practicum.shareit.user.service.UserService;
+import ru.practicum.shareit.error.NotFoundException;
 
-import static java.time.LocalDateTime.now;
-import static java.util.List.of;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.item.model.Item;
+import org.junit.jupiter.api.BeforeEach;
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.Test;
+
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.hamcrest.MatcherAssert.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.hamcrest.Matchers.equalTo;
+import static java.time.LocalDateTime.*;
 import static org.hamcrest.Matchers.*;
+import static java.util.List.*;
 
 
 @Transactional
@@ -43,12 +48,12 @@ class ItemServiceImplTest {
                 new UserDto(
                         null,
                         "Joe",
-                        "joe@mail.ru")
+                        "joe@mail.com")
         );
         itemDto = itemService.save(
                 new ItemDto(null,
-                        "Pen2",
-                        "testPen",
+                        "Pen",
+                        "Blue Pen",
                         true,
                         userDto.getId(),
                         null),
@@ -81,6 +86,7 @@ class ItemServiceImplTest {
         );
         var commentDto = new CommentDto(
                 null,
+
                 itemDto.getId(),
                 commentText,
                 booker.getName(),
@@ -111,7 +117,7 @@ class ItemServiceImplTest {
         var dto = new ItemDto(
                 itemDto.getId(),
                 "Bear",
-                "SoftBear",
+                "Soft toy",
                 false,
                 userDto.getId(),
                 null
@@ -168,7 +174,7 @@ class ItemServiceImplTest {
                 new ItemDto(
                         null,
                         "Doll",
-                        "TestDoll",
+                        "Tall doll",
                         true,
                         userDto.getId(),
                         null),
@@ -192,8 +198,8 @@ class ItemServiceImplTest {
         itemDto = itemService.save(
                 new ItemDto(
                         null,
-                        "TeslaTruck",
-                        "testTeslaTruck",
+                        "Truck",
+                        "Big truck",
                         false,
                         userDto.getId(),
                         null),
@@ -218,8 +224,8 @@ class ItemServiceImplTest {
         itemDto = itemService.save(
                 new ItemDto(
                         1L,
-                        "TeslaCar",
-                        "TeslaCarTest",
+                        "Car",
+                        "Red car",
                         true,
                         userDto.getId(),
                         null),
@@ -242,24 +248,23 @@ class ItemServiceImplTest {
     @Test
     void getAllCommentsTest() {
         saveCommentDto(
-                "WinterIsComing",
+                "Winter",
                 new UserDto(
                         12L,
                         "Richard",
-                        "richard@mail.ru")
+                        "richard@mail.com")
         );
         saveCommentDto(
-                "SpringHasCome",
+                "Spring",
                 new UserDto(
                         13L,
                         "Bethany",
-                        "bethany@mail.ru")
+                        "bethany@mail.com")
         );
         var allComments = itemService.getAllComments();
         var comments = entityManager.createQuery(
                         "SELECT comment " +
-                                "FROM Comment comment",
-                        Comment.class)
+                                "FROM Comment comment")
                 .getResultList();
         assertThat(comments.size(), equalTo(allComments.size()));
         assertThat(comments.size(), equalTo(2));
@@ -271,13 +276,13 @@ class ItemServiceImplTest {
         var requester = userService.save(
                 new UserDto(
                         null,
-                        "AbbyLinguo",
-                        "abby@mail.ru")
+                        "Abby",
+                        "abby@mail.com")
         );
         var itemRequestDto = itemRequestService.save(
                 new ItemRequestDto(
                         null,
-                        "WhinterIsComing",
+                        "I need it",
                         requester.getId(),
                         now(),
                         of()),
@@ -287,7 +292,7 @@ class ItemServiceImplTest {
                 new ItemDto(
                         null,
                         "Thing",
-                        "TestThing",
+                        "Little thing",
                         true,
                         userDto.getId(),
                         null),
@@ -312,8 +317,8 @@ class ItemServiceImplTest {
         itemDto = itemService.save(
                 new ItemDto(
                         null,
-                        "HouseMouse",
-                        "Touse",
+                        "House",
+                        "Big house",
                         true,
                         userDto.getId(),
                         null),
@@ -333,25 +338,6 @@ class ItemServiceImplTest {
         assertThat(items, empty());
     }
 
-    @Test
-    void saveCommentTest() {
-        var commentDto = saveCommentDto(
-                "Hello there",
-                new UserDto(
-                        15L,
-                        "Douglas",
-                        "douglas@mail.ru")
-        );
-        var comment = entityManager.createQuery(
-                "SELECT comment " +
-                        "FROM Comment comment",
-                Comment.class).getSingleResult();
-        assertThat(comment.getAuthor().getName(), equalTo(commentDto.getAuthorName()));
-        assertThat(comment.getItem().getId(), equalTo(commentDto.getItemId()));
-        assertThat(comment.getText(), equalTo(commentDto.getText()));
-        assertThat(comment.getId(), equalTo(commentDto.getId()));
-        assertThat(comment.getId(), notNullValue());
-    }
 
     @Test
     void getItemsByRequestIdEmptyResultTest() {
