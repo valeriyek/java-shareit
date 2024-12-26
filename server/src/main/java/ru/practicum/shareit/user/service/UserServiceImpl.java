@@ -1,14 +1,12 @@
 package ru.practicum.shareit.user.service;
 
 
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.error.EmailException;
 import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
@@ -23,7 +21,6 @@ import static ru.practicum.shareit.user.mapper.UserMapper.mapToUserDto;
 
 @Slf4j
 @Service
-@Validated
 @AllArgsConstructor
 @Transactional(readOnly = true)
 public class UserServiceImpl implements UserService {
@@ -31,7 +28,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDto save(@Valid UserDto userDto) {
+    public UserDto save(UserDto userDto) {
 
         try {
             return mapToUserDto(userRepository.save(mapToUser(userDto)));
@@ -45,7 +42,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public UserDto update(@Valid UserDto userDto, Long userId) {
+    public UserDto update(UserDto userDto, Long userId) {
         var user = userRepository.findById(userId).orElseThrow(() -> {
             throw new NotFoundException("Пользователь с  ID #" + userId + " не существует.");
         });
