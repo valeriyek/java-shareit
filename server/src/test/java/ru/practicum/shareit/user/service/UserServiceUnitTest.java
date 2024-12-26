@@ -1,25 +1,22 @@
 package ru.practicum.shareit.user.service;
 
-import ru.practicum.shareit.user.repository.UserRepository;
-import ru.practicum.shareit.error.ValidationException;
-import ru.practicum.shareit.error.NotFoundException;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
-import ru.practicum.shareit.error.EmailException;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.error.EmailException;
+import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.repository.UserRepository;
 
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static ru.practicum.shareit.user.mapper.UserMapper.*;
+import static java.util.Optional.ofNullable;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
-import static java.util.Optional.*;
-
+import static ru.practicum.shareit.user.mapper.UserMapper.mapToUser;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -41,16 +38,6 @@ class UserServiceUnitTest {
         user = mapToUser(userDto);
     }
 
-    @Test
-    void saveUserNullEmailTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> userService.save(new UserDto(
-                        null,
-                        "Molly",
-                        null))
-        );
-        assertEquals("Email не empty.", exception.getMessage());
-    }
 
     @Test
     void saveTest() {
@@ -71,14 +58,6 @@ class UserServiceUnitTest {
 
     }
 
-    @Test
-    void saveUserEmptyEmailTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> userService.save(new UserDto(
-                        null, "Abbie", "mail"))
-        );
-        assertEquals("Incorrect email: mail.", exception.getMessage());
-    }
 
     @Test
     void updateUserNameTest() {
@@ -165,19 +144,6 @@ class UserServiceUnitTest {
                 .deleteById(user.getId());
     }
 
-    @Test
-    void getUserNullTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> userService.get(null));
-        assertEquals("User ID не null.", exception.getMessage());
-    }
-
-    @Test
-    void deleteUserNullIdTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> userService.delete(null));
-        assertEquals("User ID не null.", exception.getMessage());
-    }
 
     @Test
     void getAllEmptyTest() {

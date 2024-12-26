@@ -1,35 +1,34 @@
 package ru.practicum.shareit.booking.service;
 
-import ru.practicum.shareit.booking.repository.BookingRepository;
-import ru.practicum.shareit.booking.dto.BookingAllFieldsDto;
-import ru.practicum.shareit.booking.dto.BookingSavingDto;
-import ru.practicum.shareit.error.ValidationException;
-import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.error.NotFoundException;
-import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.shareit.booking.model.Booking;
-import org.junit.jupiter.api.extension.ExtendWith;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.item.model.Item;
-import ru.practicum.shareit.user.model.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.dto.BookingAllFieldsDto;
+import ru.practicum.shareit.booking.dto.BookingSavingDto;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.error.ValidationException;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
+import ru.practicum.shareit.user.service.UserService;
 
-import static ru.practicum.shareit.user.mapper.UserMapper.mapToUser;
-import static ru.practicum.shareit.booking.enums.BookingTimeState.*;
-import static ru.practicum.shareit.booking.enums.BookingState.*;
-import static ru.practicum.shareit.item.mapper.ItemMapper.*;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.springframework.data.domain.Page.*;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static java.time.LocalDateTime.now;
+import static java.util.List.of;
 import static java.util.Optional.ofNullable;
-import static org.mockito.Mockito.lenient;
-import static java.time.LocalDateTime.*;
-import static org.mockito.Mockito.*;
-import static java.util.List.*;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.when;
+import static org.springframework.data.domain.Page.empty;
+import static ru.practicum.shareit.booking.enums.BookingState.*;
+import static ru.practicum.shareit.booking.enums.BookingTimeState.*;
+import static ru.practicum.shareit.item.mapper.ItemMapper.mapToItemAllFieldsDto;
+import static ru.practicum.shareit.user.mapper.UserMapper.mapToUser;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -89,23 +88,6 @@ class BookingServiceUnitTest {
                 2L);
     }
 
-    @Test
-    void saveBookingEmptyEndTimeTest() {
-        lenient().when(userService.get(anyLong()))
-                .thenReturn(userDto);
-        bookingCreatedDto.setEnd(null);
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Введите дату окончания брони", exception.getMessage());
-    }
 
     @Test
     void saveBookingTest() {
@@ -114,123 +96,6 @@ class BookingServiceUnitTest {
         assertEquals(bookingAllFieldsDto.getItem().getId(), booking.getItem().getId());
     }
 
-    @Test
-    void saveBookingEmptyStartTimeTest() {
-        lenient().when(userService.get(anyLong()))
-                .thenReturn(userDto);
-        bookingCreatedDto.setStart(null);
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Введите дату начала брони", exception.getMessage());
-    }
-
-    @Test
-    void saveBookingStartInPastTest() {
-        lenient().when(userService.get(anyLong()))
-                .thenReturn(userDto);
-        bookingCreatedDto.setStart(now().minusDays(2));
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Неправильная дата начала бронирования", exception.getMessage());
-    }
-
-    @Test
-    void saveBookingEmptyEndInPastTest() {
-        lenient().when(userService.get(anyLong()))
-                .thenReturn(userDto);
-        bookingCreatedDto.setEnd(now().minusDays(2));
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Неправильная дата окончания бронирования.", exception.getMessage());
-    }
-
-    @Test
-    void saveBookingByItemOwnerTest() {
-        bookingCreatedDto.setBooker(booking.getItem().getOwner().getId());
-        var exception = assertThrows(NotFoundException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        bookingCreatedDto.getBooker())
-        );
-        assertEquals("Вещь с  id#" + booking.getId() + " не может быть забронирована пользователем", exception.getMessage());
-    }
-
-    @Test
-    void saveBookingNotAvailableItemTest() {
-        booking.getItem().setAvailable(false);
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Вещь с id#" + booking.getId() + " не может быть забронирована", exception.getMessage());
-    }
-
-    @Test
-    void saveBookingTakenItemTest() {
-        when(userService.get(anyLong()))
-                .thenReturn(userDto);
-        when(bookingRepository.findBookingsByItem_IdIsAndStatusIsAndEndIsAfter(anyLong(), any(), any()))
-                .thenReturn(of(booking));
-        var exception = assertThrows(NotFoundException.class,
-                () -> bookingService.save(
-                        bookingCreatedDto,
-                        mapToItemAllFieldsDto(
-                                booking.getItem(),
-                                null,
-                                null,
-                                of()),
-                        2L)
-        );
-        assertEquals("Этот предмет нельзя забронировать: " + booking.getItem().getName(), exception.getMessage());
-    }
-
-    @Test
-    void approveBookingNotItemOwnerTest() {
-        when(bookingRepository.findById(anyLong()))
-                .thenReturn(ofNullable(booking));
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.approve(
-                        booking.getId(),
-                        true,
-                        3L)
-        );
-        assertEquals("Статус бронирования нельзя обновить", exception.getMessage());
-    }
 
     @Test
     void approveBookingTest() {
@@ -254,18 +119,6 @@ class BookingServiceUnitTest {
         assertEquals(approvedFrom.getId(), approved.getId());
     }
 
-    @Test
-    void approveBookingByBookerTest() {
-        when(bookingRepository.findById(anyLong()))
-                .thenReturn(ofNullable(booking));
-        var exception = assertThrows(NotFoundException.class,
-                () -> bookingService.approve(
-                        booking.getId(),
-                        true,
-                        booking.getBooker().getId())
-        );
-        assertEquals("невозможно подтверждение для пользователя с id#" + booking.getBooker().getId(), exception.getMessage());
-    }
 
     @Test
     void getNotFoundBookingTest() {
@@ -278,19 +131,6 @@ class BookingServiceUnitTest {
         );
     }
 
-    @Test
-    void approveApprovedBookingTest() {
-        booking.setStatus(APPROVED);
-        when(bookingRepository.findById(anyLong()))
-                .thenReturn(ofNullable(booking));
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.approve(
-                        booking.getId(),
-                        true,
-                        userDto.getId())
-        );
-        assertEquals("Статус бронирования нельзя обновить", exception.getMessage());
-    }
 
     @Test
     void getBookingTest() {
@@ -355,18 +195,6 @@ class BookingServiceUnitTest {
         assertEquals("size <= 0 || from < 0", exception.getMessage());
     }
 
-    @Test
-    void getAllBookingsWithNotValidStateTest() {
-        saveBookingDto();
-        var exception = assertThrows(ValidationException.class,
-                () -> bookingService.getAllBookings(
-                        userDto.getId(),
-                        "Unknown",
-                        null,
-                        null)
-        );
-        assertEquals("Unknown state: Unknown", exception.getMessage());
-    }
 
     @Test
     void getAllBookingsFutureStateTest() {

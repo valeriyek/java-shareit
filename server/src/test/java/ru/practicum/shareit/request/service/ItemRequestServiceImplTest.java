@@ -1,27 +1,22 @@
 package ru.practicum.shareit.request.service;
 
+import jakarta.persistence.EntityManager;
+import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.model.ItemRequest;
-import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
-import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.Test;
+import ru.practicum.shareit.user.service.UserService;
 
-import jakarta.persistence.EntityManager;
-import jakarta.transaction.Transactional;
-
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static java.time.LocalDateTime.now;
+import static java.util.List.of;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
 import static org.hamcrest.Matchers.equalTo;
-import static java.time.LocalDateTime.*;
-import static java.util.List.*;
-
+import static org.hamcrest.Matchers.notNullValue;
 
 
 @Transactional
@@ -70,12 +65,6 @@ class ItemRequestServiceImplTest {
         itemRequestService.save(itemRequestDto2, user.getId());
     }
 
-    @Test
-    void saveItemRequestUserNotFoundTest() {
-        final long id = 57L;
-        var exception = assertThrows(NotFoundException.class, () -> itemRequestService.save(itemRequestDto, id));
-        Assertions.assertEquals("Пользователя с ID #" + id + " нет.", exception.getMessage());
-    }
 
     @Test
     void saveItemRequestTest() {

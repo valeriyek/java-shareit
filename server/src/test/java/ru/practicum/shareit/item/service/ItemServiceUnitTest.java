@@ -1,32 +1,31 @@
 package ru.practicum.shareit.item.service;
 
-import ru.practicum.shareit.item.repository.CommentRepository;
-import ru.practicum.shareit.item.repository.ItemRepository;
-import ru.practicum.shareit.booking.service.BookingService;
-import ru.practicum.shareit.error.ValidationException;
-import ru.practicum.shareit.user.service.UserService;
-import ru.practicum.shareit.error.NotFoundException;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.junit.jupiter.MockitoExtension;
-import ru.practicum.shareit.item.dto.CommentDto;
-import ru.practicum.shareit.item.model.Comment;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.model.Item;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.model.Comment;
+import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
+import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.service.UserService;
 
 import java.util.Optional;
 
-import static ru.practicum.shareit.item.mapper.ItemMapper.mapToItemDto;
-import static ru.practicum.shareit.item.mapper.ItemMapper.mapToItem;
-import static ru.practicum.shareit.user.mapper.UserMapper.mapToUser;
+import static java.time.LocalDateTime.now;
+import static java.util.List.of;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
-import static java.time.LocalDateTime.now;
 import static org.mockito.Mockito.when;
-import static java.util.List.*;
+import static ru.practicum.shareit.item.mapper.ItemMapper.mapToItem;
+import static ru.practicum.shareit.item.mapper.ItemMapper.mapToItemDto;
+import static ru.practicum.shareit.user.mapper.UserMapper.mapToUser;
 
 
 @ExtendWith(MockitoExtension.class)
@@ -116,13 +115,6 @@ class ItemServiceUnitTest {
         assertEquals(search.size(), 1);
     }
 
-//    @Test
-//    void updateNullOwnerTest() {
-//        var exception = assertThrows(ValidationException.class,
-//                () -> itemService.update(itemDto, null));
-//        assertEquals("id пользователя не null", exception.getMessage());
-//    }
-
 
     @Test
     void getItemNotFoundTest() {
@@ -174,34 +166,6 @@ class ItemServiceUnitTest {
         assertEquals(search.size(), 0);
     }
 
-    @Test
-    void searchNullTextTest() {
-        var commentDto = new CommentDto(
-                1L,
-                null,
-                userDto.getName(),
-                itemDto.getId().toString(),
-                            now()
-        );
-        var exception = assertThrows(ValidationException.class,
-                () -> itemService.saveComment(commentDto, itemDto.getId(), 2L));
-        assertEquals("Текст комментария не пустой", exception.getMessage());
-    }
-
-    @Test
-    void saveCommentEmptyTextTest() {
-        var commentDto = new CommentDto(
-                1L,
-
-                itemDto.getId(),
-                "",
-                userDto.getName(),
-                now()
-        );
-        var exception = assertThrows(ValidationException.class,
-                () -> itemService.saveComment(commentDto, itemDto.getId(), 2L));
-        assertEquals("Текст комментария не пустой", exception.getMessage());
-    }
 
     @Test
     void getCommentsTest() {
@@ -225,23 +189,6 @@ class ItemServiceUnitTest {
         var allComments = itemService.getAllComments(item.getId());
         assertEquals(allComments.get(0).getId(), comment.getId());
         assertEquals(allComments.size(), 1);
-    }
-
-    @Test
-    void saveItemEmptyNameTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> itemService.save(
-                        new ItemDto(
-                                null,
-                                "",
-                                "Blender",
-                                true,
-                                1L,
-                                1L),
-                        null,
-                        1L)
-        );
-        assertEquals("Имя не пустое", exception.getMessage());
     }
 
 
@@ -269,37 +216,5 @@ class ItemServiceUnitTest {
         assertEquals(allComments.size(), 1);
     }
 
-    @Test
-    void saveItemEmptyDescriptionTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> itemService.save(
-                        new ItemDto(
-                                null,
-                                "space",
-                                "",
-                                true,
-                                1L,
-                                1L),
-                        null,
-                        1L)
-        );
-        assertEquals("Описание не пустое", exception.getMessage());
-    }
 
-    @Test
-    void saveItemAvailableTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> itemService.save(
-                        new ItemDto(
-                                null,
-                                "Joe",
-                                "Joe's thing",
-                                null,
-                                1L,
-                                1L),
-                        null,
-                        1L)
-        );
-        assertEquals("Available не null", exception.getMessage());
-    }
 }

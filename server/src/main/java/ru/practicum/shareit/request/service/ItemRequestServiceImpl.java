@@ -1,10 +1,12 @@
 package ru.practicum.shareit.request.service;
 
 
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
@@ -25,6 +27,7 @@ import static ru.practicum.shareit.utils.Pagination.makePageRequest;
 
 @Slf4j
 @Service
+@Validated
 @AllArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
     private final ItemRequestRepository itemRequestRepository;
@@ -32,7 +35,7 @@ public class ItemRequestServiceImpl implements ItemRequestService {
     private final ItemService itemService;
 
     @Override
-    public ItemRequestDto save(ItemRequestDto itemRequestDto, Long requesterId) {
+    public ItemRequestDto save(@Valid ItemRequestDto itemRequestDto, Long requesterId) {
 
         var userDto = userService.get(requesterId);
         var user = mapToUser(userDto);

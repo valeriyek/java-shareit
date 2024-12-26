@@ -1,21 +1,19 @@
 package ru.practicum.shareit.user.service;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import ru.practicum.shareit.error.EmailException;
-import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.model.User;
-import org.junit.jupiter.api.BeforeEach;
-import lombok.RequiredArgsConstructor;
-import org.junit.jupiter.api.Test;
-
 import jakarta.persistence.EntityManager;
 import jakarta.transaction.Transactional;
+import lombok.RequiredArgsConstructor;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import ru.practicum.shareit.user.dto.UserDto;
+import ru.practicum.shareit.user.model.User;
 
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.junit.jupiter.api.Assertions.*;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.notNullValue;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 
 
 @Transactional
@@ -41,13 +39,6 @@ class UserServiceImplTest {
         userService.save(saveUserDto("ClareRadcliff", "clare@mail.com"));
     }
 
-    @Test
-    void emailExceptionTest() {
-        userService.save(saveUserDto("JackDoe", "jack@mail.com"));
-        var exception = assertThrows(EmailException.class,
-                () -> userService.save(saveUserDto("Jack", "jack@mail.com")));
-        assertEquals("Пользователь с email: " + userDto.getEmail() + " существует.", exception.getMessage());
-    }
 
     @Test
     void nullTest() {

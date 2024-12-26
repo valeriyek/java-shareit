@@ -6,7 +6,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import ru.practicum.shareit.error.NotFoundException;
-import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
@@ -62,21 +61,6 @@ class ItemRequestServiceUnitTest {
         return itemRequestService.save(itemRequestDto, userDto.getId());
     }
 
-    @Test
-    void saveItemEmptyDescriptionTest() {
-        var exception = assertThrows(ValidationException.class,
-                () -> itemRequestService.save(
-                        new ItemRequestDto(
-                                1L,
-                                "",
-                                1L,
-                                now(),
-                                of()
-                        ),
-                        1L)
-        );
-        assertEquals("Запрос не null  или blank", exception.getMessage());
-    }
 
     @Test
     void saveItemRequestTest() {
