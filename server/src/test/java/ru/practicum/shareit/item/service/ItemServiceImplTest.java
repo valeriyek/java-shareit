@@ -9,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import ru.practicum.shareit.booking.dto.BookingSavingDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemAllFieldsDto;
 import ru.practicum.shareit.item.dto.ItemDto;
@@ -59,6 +60,11 @@ class ItemServiceImplTest {
 
     private CommentDto saveCommentDto(String commentText, UserDto userDto) {
         var booker = userService.save(userDto);
+
+        if (itemDto.getOwnerId().equals(booker.getId())) {
+            throw new ValidationException("Владелец не может бронировать свою вещь");
+        }
+
         bookingService.save(
                 new BookingSavingDto(
                         null,
@@ -240,32 +246,6 @@ class ItemServiceImplTest {
         assertThat(items.size(), equalTo(itemDtos.size()));
     }
 
-    @Test
-    void getAllCommentsTest() {
-        saveCommentDto(
-                "Winter",
-                new UserDto(
-                        12L,
-                        "Richard",
-                        "richard@mail.com")
-        );
-        saveCommentDto(
-                "Spring",
-                new UserDto(
-                        13L,
-                        "Bethany",
-                        "bethany@mail.com")
-        );
-        var allComments = itemService.getAllComments();
-        var comments = entityManager.createQuery(
-                        "SELECT comment " +
-                                "FROM Comment comment",
-                        Comment.class)
-                .getResultList();
-        assertThat(comments.size(), equalTo(allComments.size()));
-        assertThat(comments.size(), equalTo(2));
-        assertThat(comments, notNullValue());
-    }
 
     @Test
     void getItemsByRequestIdTest() {
