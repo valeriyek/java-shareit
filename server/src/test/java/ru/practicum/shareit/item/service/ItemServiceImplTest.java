@@ -7,8 +7,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import ru.practicum.shareit.booking.dto.BookingSavingDto;
 import ru.practicum.shareit.booking.service.BookingService;
+import ru.practicum.shareit.item.dto.CommentDto;
+import ru.practicum.shareit.item.dto.ItemAllFieldsDto;
 import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.service.ItemRequestService;
@@ -51,6 +55,42 @@ class ItemServiceImplTest {
                 null,
                 userDto.getId()
         );
+    }
+
+    private CommentDto saveCommentDto(String commentText, UserDto userDto) {
+        var booker = userService.save(userDto);
+        bookingService.save(
+                new BookingSavingDto(
+                        null,
+                        now().minusSeconds(2),
+                        now().minusSeconds(1),
+                        itemDto.getId(),
+                        booker.getId(),
+                        null),
+                new ItemAllFieldsDto(
+                        itemDto.getId(),
+                        itemDto.getName(),
+                        itemDto.getDescription(),
+                        true,
+                        userDto.getId(),
+                        null,
+                        null,
+                        null,
+                        of()),
+                booker.getId()
+        );
+        var commentDto = new CommentDto(
+                null,
+                itemDto.getId(),
+                commentText,
+
+                booker.getName(),
+                now()
+        );
+        return itemService.saveComment(
+                commentDto,
+                commentDto.getItemId(),
+                booker.getId());
     }
 
 
@@ -200,6 +240,32 @@ class ItemServiceImplTest {
         assertThat(items.size(), equalTo(itemDtos.size()));
     }
 
+    @Test
+    void getAllCommentsTest() {
+        saveCommentDto(
+                "Winter",
+                new UserDto(
+                        12L,
+                        "Richard",
+                        "richard@mail.com")
+        );
+        saveCommentDto(
+                "Spring",
+                new UserDto(
+                        13L,
+                        "Bethany",
+                        "bethany@mail.com")
+        );
+        var allComments = itemService.getAllComments();
+        var comments = entityManager.createQuery(
+                        "SELECT comment " +
+                                "FROM Comment comment",
+                        Comment.class)
+                .getResultList();
+        assertThat(comments.size(), equalTo(allComments.size()));
+        assertThat(comments.size(), equalTo(2));
+        assertThat(comments, notNullValue());
+    }
 
     @Test
     void getItemsByRequestIdTest() {
@@ -268,6 +334,25 @@ class ItemServiceImplTest {
         assertThat(items, empty());
     }
 
+    @Test
+    void saveCommentTest() {
+        var commentDto = saveCommentDto(
+                "Hello there",
+                new UserDto(
+                        15L,
+                        "Douglas",
+                        "douglas@mail.com")
+        );
+        var comment = entityManager.createQuery(
+                "SELECT comment " +
+                        "FROM Comment comment",
+                Comment.class).getSingleResult();
+        assertThat(comment.getAuthor().getName(), equalTo(commentDto.getAuthorName()));
+        assertThat(comment.getItem().getId(), equalTo(commentDto.getItemId()));
+        assertThat(comment.getText(), equalTo(commentDto.getText()));
+        assertThat(comment.getId(), equalTo(commentDto.getId()));
+        assertThat(comment.getId(), notNullValue());
+    }
 
     @Test
     void getItemsByRequestIdEmptyResultTest() {
