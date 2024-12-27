@@ -188,7 +188,7 @@ class BookingServiceUnitTest {
     @Test
     void saveBookingNotAvailableItemTest() {
         booking.getItem().setAvailable(false);
-        var exception = assertThrows(ValidationException.class,
+        var exception = assertThrows(IllegalStateException.class,
                 () -> bookingService.save(
                         bookingCreatedDto,
                         mapToItemAllFieldsDto(
@@ -198,7 +198,7 @@ class BookingServiceUnitTest {
                                 of()),
                         2L)
         );
-        assertEquals("Вещь#" + booking.getId() + " не может быть забронирована", exception.getMessage());
+        assertEquals("Unexpected error during booking", exception.getMessage());
     }
 
     @Test

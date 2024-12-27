@@ -82,14 +82,19 @@ public class ItemServiceImpl implements ItemService {
 
     @Override
     public ItemAllFieldsDto get(Long id, Long userId) {
+        log.debug("Fetching item with id: {} for userId: {}", id, userId);
         var item = itemRepository.findById(id).orElseThrow(
                 () -> new NotFoundException("Вещь с id#" + id + " не существует"));
+        log.debug("Item found: {}", item);
         var comments = getAllComments(id);
+        log.debug("Comments fetched for item id {}: {}", id, comments);
         var bookings = bookingService.getBookingsByItem(item.getId(), userId);
+        log.debug("Bookings fetched for item id {}: {}", id, bookings);
         return mapToItemAllFieldsDto(item,
                 getLastItem(bookings),
                 getNextItem(bookings),
                 comments);
+
     }
 
     @Override

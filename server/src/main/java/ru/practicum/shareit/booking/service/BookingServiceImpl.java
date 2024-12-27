@@ -68,8 +68,10 @@ public class BookingServiceImpl implements BookingService {
     public BookingAllFieldsDto save(BookingSavingDto bookingSavingDto, ItemAllFieldsDto itemDto, Long bookerId) {
         if (itemDto.getOwnerId().equals(bookerId))
             throw new NotFoundException("Вещь#" + itemDto.getId() + " не может быть забронирована владельцем");
-        if (!itemDto.getAvailable())
-            throw new ValidationException("Вещь#" + itemDto.getId() + " не может быть забронирована");
+        if (!itemDto.getAvailable()) {
+            log.warn("Attempt to book unavailable item with id: {}", itemDto.getId());
+            throw new IllegalStateException("Unexpected error during booking");
+        }
         validate(bookingSavingDto);
 
         var booker = mapToUser(userService.get(bookerId));
