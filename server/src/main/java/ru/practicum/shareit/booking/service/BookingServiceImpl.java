@@ -1,6 +1,6 @@
 package ru.practicum.shareit.booking.service;
 
-import jakarta.validation.ValidationException;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
@@ -9,13 +9,16 @@ import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingAllFieldsDto;
 import ru.practicum.shareit.booking.dto.BookingSavingDto;
 import ru.practicum.shareit.booking.enums.BookingState;
+import ru.practicum.shareit.booking.enums.BookingTimeState;
 import ru.practicum.shareit.booking.mapper.BookingMapper;
 import ru.practicum.shareit.booking.model.Booking;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.item.dto.ItemAllFieldsDto;
 import ru.practicum.shareit.user.service.UserService;
 
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Stream;
@@ -39,6 +42,27 @@ public class BookingServiceImpl implements BookingService {
     private final BookingRepository bookingRepository;
     private final UserService userService;
 
+    private void validate(BookingSavingDto bookingSavingDto) {
+
+        if (bookingSavingDto.getStart() == null)
+            throw new ValidationException("Пожалуйста, укажите дату начала бронирования");
+
+
+        if (bookingSavingDto.getEnd() == null)
+            throw new ValidationException("Пожалуйста, укажите дату окончания бронирования");
+
+
+        if (bookingSavingDto.getStart().toLocalDate().isBefore(LocalDate.now()))
+            throw new ValidationException("Некорректная дата начала бронирования");
+
+
+        if (bookingSavingDto.getEnd().isBefore(bookingSavingDto.getStart())
+                || bookingSavingDto.getEnd().toLocalDate().isBefore(LocalDate.now()))
+            throw new ValidationException("Некорректная дата окончания бронирования");
+
+
+    }
+
     @Override
     @Transactional
     public BookingAllFieldsDto save(BookingSavingDto bookingSavingDto, ItemAllFieldsDto itemDto, Long bookerId) {
@@ -46,6 +70,7 @@ public class BookingServiceImpl implements BookingService {
             throw new NotFoundException("Вещь#" + itemDto.getId() + " не может быть забронирована владельцем");
         if (!itemDto.getAvailable())
             throw new ValidationException("Вещь#" + itemDto.getId() + " не может быть забронирована");
+        validate(bookingSavingDto);
 
         var booker = mapToUser(userService.get(bookerId));
         var item = mapToItem(itemDto);
@@ -196,98 +221,37 @@ public class BookingServiceImpl implements BookingService {
     }
 
     @Override
-    public List<BookingAllFieldsDto> getBookingsByOwnerId(Long userId, String state) {
-        Stream<Booking> stream = null;
-        var userDto = userService.get(userId);
-        var user = mapToUser(userDto);
-        if (state == null || ALL.name().equals(state))
-            stream = bookingRepository.findBookingsByItemOwnerIsOrderByStartDesc(user)
-                    .stream();
-        if (PAST.name().equals(state))
-            stream = bookingRepository
-                    .findBookingsByItemOwnerAndEndBeforeOrderByStartDesc(user, now())
-                    .stream();
-        if (CURRENT.name().equals(state))
-            stream = bookingRepository
-                    .findBookingsByItemOwnerIsAndStartBeforeAndEndAfterOrderByStartDesc(user, now(), now())
-                    .stream();
-        if (FUTURE.name().equals(state))
-            stream = bookingRepository
-                    .findBookingsByItemOwnerAndStartAfterOrderByStartDesc(user, now())
-                    .stream();
-        if (Arrays.stream(BookingState.values()).anyMatch(bookingState -> bookingState.name().equals(state)))
-            stream = bookingRepository
-                    .findBookingsByItemOwnerIsAndStatusIsOrderByStartDesc(user, BookingState.valueOf(state))
-                    .stream();
-        if (stream != null)
-            return stream
-                    .map(BookingMapper::mapToBookingAllFieldsDto)
-                    .collect(toList());
-        else
-            throw new ValidationException("Неизвестный статус: " + state);
-    }
+    public List<BookingAllFieldsDto> getBookingsByOwnerId(Long userId, BookingTimeState state, Integer from, Integer size) {
+        var pageRequest = (from != null && size != null)
+                ? makePageRequest(from, size, Sort.by("start").descending())
+                : null;
 
-    @Override
-    public List<BookingAllFieldsDto> getBookingsByOwnerId(Long userId, String state, Integer from, Integer size) {
-        Stream<Booking> stream = null;
-        var pageRequest = makePageRequest(from, size, Sort.by("start").descending());
         var user = mapToUser(userService.get(userId));
-        if (state == null || state.equals(ALL.name())) {
-            if (pageRequest == null)
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsOrderByStartDesc(user)
-                        .stream();
-            else
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsOrderByStartDesc(user, pageRequest)
-                        .stream();
+        Stream<Booking> stream;
+
+        if (state == null || state == BookingTimeState.ALL) {
+            stream = pageRequest == null
+                    ? bookingRepository.findBookingsByItemOwnerIsOrderByStartDesc(user).stream()
+                    : bookingRepository.findBookingsByItemOwnerIsOrderByStartDesc(user, pageRequest).stream();
+        } else if (state == BookingTimeState.PAST) {
+            stream = pageRequest == null
+                    ? bookingRepository.findBookingsByItemOwnerAndEndBeforeOrderByStartDesc(user, now()).stream()
+                    : bookingRepository.findBookingsByItemOwnerAndEndBeforeOrderByStartDesc(user, now(), pageRequest).stream();
+        } else if (state == BookingTimeState.CURRENT) {
+            stream = pageRequest == null
+                    ? bookingRepository.findBookingsByItemOwnerIsAndStartBeforeAndEndAfterOrderByStartDesc(user, now(), now()).stream()
+                    : bookingRepository.findBookingsByItemOwnerIsAndStartBeforeAndEndAfterOrderByStartDesc(user, now(), now(), pageRequest).stream();
+        } else if (state == BookingTimeState.FUTURE) {
+            stream = pageRequest == null
+                    ? bookingRepository.findBookingsByItemOwnerAndStartAfterOrderByStartDesc(user, now()).stream()
+                    : bookingRepository.findBookingsByItemOwnerAndStartAfterOrderByStartDesc(user, now(), pageRequest).stream();
+        } else {
+            throw new ValidationException("Неизвестный статус: " + state);
         }
-        if (PAST.name().equals(state)) {
-            if (pageRequest == null)
-                stream = bookingRepository
-                        .findBookingsByItemOwnerAndEndBeforeOrderByStartDesc(user, now())
-                        .stream();
-            else
-                stream = bookingRepository
-                        .findBookingsByItemOwnerAndEndBeforeOrderByStartDesc(user, now(), pageRequest)
-                        .stream();
-        }
-        if (CURRENT.name().equals(state)) {
-            if (pageRequest == null)
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsAndStartBeforeAndEndAfterOrderByStartDesc(user, now(), now())
-                        .stream();
-            else
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsAndStartBeforeAndEndAfterOrderByStartDesc(user, now(), now(), pageRequest)
-                        .stream();
-        }
-        if (FUTURE.name().equals(state)) {
-            if (pageRequest == null)
-                stream = bookingRepository
-                        .findBookingsByItemOwnerAndStartAfterOrderByStartDesc(user, now())
-                        .stream();
-            else
-                stream = bookingRepository
-                        .findBookingsByItemOwnerAndStartAfterOrderByStartDesc(user, now(), pageRequest)
-                        .stream();
-        }
-        if (Arrays.stream(BookingState.values()).anyMatch(bookingState -> bookingState.name().equals(state))) {
-            if (pageRequest == null)
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsAndStatusIsOrderByStartDesc(user, BookingState.valueOf(state))
-                        .stream();
-            else
-                stream = bookingRepository
-                        .findBookingsByItemOwnerIsAndStatusIsOrderByStartDesc(user, BookingState.valueOf(state), pageRequest)
-                        .stream();
-        }
-        if (stream != null)
-            return stream
-                    .map(BookingMapper::mapToBookingAllFieldsDto)
-                    .collect(toList());
-        else
-            throw new ValidationException("Неизвестный статус:" + state);
+
+        return stream
+                .map(BookingMapper::mapToBookingAllFieldsDto)
+                .collect(toList());
     }
 
 

@@ -7,6 +7,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.booking.dto.BookingAllFieldsDto;
+import ru.practicum.shareit.booking.enums.BookingTimeState;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.error.NotFoundException;
 import ru.practicum.shareit.error.ValidationException;
@@ -31,7 +32,6 @@ import static java.util.Collections.emptyList;
 import static java.util.Comparator.comparing;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.toList;
-import static ru.practicum.shareit.booking.enums.BookingTimeState.PAST;
 import static ru.practicum.shareit.item.mapper.CommentMapper.mapToComment;
 import static ru.practicum.shareit.item.mapper.CommentMapper.mapToCommentDto;
 import static ru.practicum.shareit.item.mapper.ItemMapper.*;
@@ -101,7 +101,7 @@ public class ItemServiceImpl implements ItemService {
     public List<ItemAllFieldsDto> getAllItems(Long userId, Integer from, Integer size) {
         Stream<Item> stream;
 
-        var bookings = bookingService.getBookingsByOwnerId(userId, null)
+        var bookings = bookingService.getBookingsByOwnerId(userId, BookingTimeState.valueOf("ALL"), 0, Integer.MAX_VALUE)
                 .stream()
                 .collect(groupingBy((BookingAllFieldsDto bookingAllFieldsDto) -> bookingAllFieldsDto.getItem().getId()));
         var comments = getAllComments().stream()
@@ -138,18 +138,33 @@ public class ItemServiceImpl implements ItemService {
                                   Long itemId,
                                   Long userId) {
 
+        // Проверяем, существует ли вещь
         var item = itemRepository.findById(itemId).orElseThrow(
                 () -> new NotFoundException("Вещи с id#" + itemId + " не существует"));
+
+        // Получаем пользователя
         var user = mapToUser(userService.get(userId));
-        var bookings = bookingService.getAllBookings(userId, PAST.name());
-        if (bookings.isEmpty()) throw new ValidationException("Пользователь не может оставлять комментарии");
+
+        // Проверяем завершённые бронирования
+        var hasCompletedBooking = bookingService.getAllBookings(userId, "PAST")
+                .stream()
+                .anyMatch(booking -> booking.getItem().getId().equals(itemId));
+
+        if (!hasCompletedBooking) {
+            throw new ValidationException("Пользователь не может оставлять комментарии");
+        }
+
+        // Создаём комментарий
         var comment = mapToComment(commentDto);
         comment.setItem(item);
         comment.setAuthor(user);
         comment.setCreated(now());
-        var save = commentRepository.save(comment);
-        return mapToCommentDto(save);
+
+        // Сохраняем комментарий
+        var savedComment = commentRepository.save(comment);
+        return mapToCommentDto(savedComment);
     }
+
 
     @Override
     public List<CommentDto> getAllComments() {

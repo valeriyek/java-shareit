@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import ru.practicum.shareit.error.EmailException;
 import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.mapper.UserMapper;
 import ru.practicum.shareit.user.repository.UserRepository;
@@ -26,10 +27,17 @@ import static ru.practicum.shareit.user.mapper.UserMapper.mapToUserDto;
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
 
+    private void validate(UserDto userDto) {
+        if (userDto.getEmail() == null)
+            throw new ValidationException("Email cannot be empty.");
+        if (userDto.getEmail().isBlank() || !userDto.getEmail().contains("@"))
+            throw new ValidationException("Incorrect email: " + userDto.getEmail() + ".");
+    }
+
     @Override
     @Transactional
     public UserDto save(UserDto userDto) {
-
+        validate(userDto);
         try {
             return mapToUserDto(userRepository.save(mapToUser(userDto)));
         } catch (DataIntegrityViolationException e) {

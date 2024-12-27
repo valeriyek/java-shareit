@@ -1,13 +1,12 @@
 package ru.practicum.shareit.request.service;
 
 
-import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import ru.practicum.shareit.error.NotFoundException;
+import ru.practicum.shareit.error.ValidationException;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.item.service.ItemService;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
@@ -27,16 +26,21 @@ import static ru.practicum.shareit.utils.Pagination.makePageRequest;
 
 @Slf4j
 @Service
-@Validated
 @AllArgsConstructor
 public class ItemRequestServiceImpl implements ItemRequestService {
     private final ItemRequestRepository itemRequestRepository;
     private final UserService userService;
     private final ItemService itemService;
 
-    @Override
-    public ItemRequestDto save(@Valid ItemRequestDto itemRequestDto, Long requesterId) {
+    private void validate(ItemRequestDto itemRequestDto) {
+        if (itemRequestDto.getDescription() == null || itemRequestDto.getDescription().isBlank()) {
+            throw new ValidationException("Request cannot be null or blank");
+        }
+    }
 
+    @Override
+    public ItemRequestDto save(ItemRequestDto itemRequestDto, Long requesterId) {
+        validate(itemRequestDto);
         var userDto = userService.get(requesterId);
         var user = mapToUser(userDto);
         var itemRequest = mapToItemRequest(itemRequestDto);

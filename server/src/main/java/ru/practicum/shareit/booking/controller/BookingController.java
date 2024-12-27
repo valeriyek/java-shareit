@@ -6,6 +6,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingAllFieldsDto;
 import ru.practicum.shareit.booking.dto.BookingSavingDto;
+import ru.practicum.shareit.booking.enums.BookingTimeState;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.item.service.ItemService;
 
@@ -34,10 +35,11 @@ public class BookingController {
     }
 
     @GetMapping("/owner")
-    public List<BookingAllFieldsDto> getBookingsByOwner(@RequestHeader(required = false, value = HEADER_SHARER_USER_ID) Long userId,
-                                                        @RequestParam(required = false) String state,
-                                                        @RequestParam(required = false) Integer from,
-                                                        @RequestParam(required = false) Integer size) {
+    public List<BookingAllFieldsDto> getBookingsByOwner(
+            @RequestHeader(required = false, value = HEADER_SHARER_USER_ID) Long userId,
+            @RequestParam(required = false) BookingTimeState state,
+            @RequestParam(required = false) Integer from,
+            @RequestParam(required = false) Integer size) {
         return bookingService.getBookingsByOwnerId(userId, state, from, size);
     }
 
